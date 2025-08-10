@@ -1,33 +1,27 @@
+# Makefile for Open-WebUI
+DATA_ROOT := \$(HOME)/Docker-Apps/docker-data/open-webui
+BACKUP_DIR := backups
+NOW := \$(shell date +"%Y%m%d-%H%M%S")
 
-ifneq ($(shell which docker-compose 2>/dev/null),)
-    DOCKER_COMPOSE := docker-compose
-else
-    DOCKER_COMPOSE := docker compose
-endif
+.PHONY: up down logs shell backup-data help
 
-install:
-	$(DOCKER_COMPOSE) up -d
+help:
+	@grep -E '^[a-zA-Z_-]+:' Makefile | sed 's/:.*//'
 
-remove:
-	@chmod +x confirm_remove.sh
-	@./confirm_remove.sh
+up:
+	docker compose up -d
 
-start:
-	$(DOCKER_COMPOSE) start
-startAndBuild: 
-	$(DOCKER_COMPOSE) up -d --build
+down:
+	docker compose down
 
-stop:
-	$(DOCKER_COMPOSE) stop
+logs:
+	docker compose logs --tail=50 -f
 
-update:
-	# Calls the LLM update script
-	chmod +x update_ollama_models.sh
-	@./update_ollama_models.sh
-	@git pull
-	$(DOCKER_COMPOSE) down
-	# Make sure the ollama-webui container is stopped before rebuilding
-	@docker stop open-webui || true
-	$(DOCKER_COMPOSE) up --build -d
-	$(DOCKER_COMPOSE) start
+shell:
+	docker compose exec ker-open-webui /bin/bash
 
+backup-data:
+	@mkdir -p \$(BACKUP_DIR)
+	@echo "📦 Creating backup: \$(BACKUP_DIR)/open-webui-\$(NOW).tar.gz"
+	tar czf \$(BACKUP_DIR)/open-webui-\$(NOW).tar.gz -C \$(HOME)/Docker-Apps/docker-data open-webui
+	@echo "✅ Backup complete"
